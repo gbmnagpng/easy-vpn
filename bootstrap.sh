@@ -183,7 +183,6 @@ cd "$INSTALL_DIR"
 docker compose pull
 docker compose up -d
 
-echo -e "${YELLOW}Aguardando WGDashboard inicializar...${NC}"
 sleep 10
 
 # ════════════════════════════════════════
@@ -203,4 +202,5 @@ echo ""
 echo -e "  Logs:    ${CYAN}cd $INSTALL_DIR && docker compose logs -f${NC}"
 echo -e "  Status:  ${CYAN}cd $INSTALL_DIR && docker compose ps${NC}"
 echo -e "  Parar:   ${CYAN}cd $INSTALL_DIR && docker compose down${NC}"
+echo -e "  Atualizar: ${CYAN}cd $INSTALL_DIR && docker compose pull && docker compose up -d${NC}"
 echo ""

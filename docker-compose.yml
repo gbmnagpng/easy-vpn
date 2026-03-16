@@ -1,0 +1,71 @@
+services:
+
+  # ── Traefik — Proxy reverso + SSL automático ──
+  traefik:
+    image: traefik:v3.3
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/traefik/traefik.yml:/traefik.yml:ro
+      - ./data/traefik/acme.json:/acme.json
+    networks:
+      - vpn_network
+
+  # ── WGDashboard v4.3 — WireGuard + UI completa ──
+  wgdashboard:
+    image: ghcr.io/wgdashboard/wgdashboard:latest
+    container_name: wgdashboard
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    volumes:
+      - wg_conf:/etc/wireguard
+      - wg_data:/data
+    ports:
+      - "51820:51820/udp"
+    environment:
+      - WG_DASHBOARD_USERNAME=${AUTH_USER}
+      - WG_DASHBOARD_PASSWORD=${AUTH_PASSWORD}
+    networks:
+      - vpn_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wgdashboard.rule=Host(`wg.${ROOT_DOMAIN}`)"
+      - "traefik.http.routers.wgdashboard.entrypoints=websecure"
+      - "traefik.http.routers.wgdashboard.tls.certresolver=duckdns"
+      - "traefik.http.services.wgdashboard.loadbalancer.server.port=10086"
+
+  # ── Watchtower — Atualizações automáticas ─────
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 0 4 * * *
+    networks:
+      - vpn_network
+
+volumes:
+  wg_conf:
+  wg_data:
+
+networks:
+  vpn_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
